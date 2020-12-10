@@ -41,11 +41,11 @@ export default function Navbar() {
               View Notes <span className="sr-only"></span>
             </NavLink>
           </li>
-          <li className="nav-item">
+          {/* <li className="nav-item">
             <NavLink className="nav-link" to="/EditNote">
               Update Notes <span className="sr-only"></span>
             </NavLink>
-          </li>
+          </li> */}
           <li className="nav-item">
             <NavLink className="nav-link" to="/Kanban">
               Kanban <span className="sr-only"></span>

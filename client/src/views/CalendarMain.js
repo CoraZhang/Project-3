@@ -3,10 +3,27 @@ import FullCalendar, { formatDate } from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-//import { INITIAL_EVENTS, createEventId } from "../utils/event-utils";
 import API from '../utils/API'
 import {UserContext} from '../UserContext'
 import { v4 as uuidv4 } from 'uuid'
+
+import { makeStyles } from '@material-ui/core/styles';
+import Modal from '@material-ui/core/Modal';
+import Backdrop from '@material-ui/core/Backdrop';
+import Fade from '@material-ui/core/Fade';
+
+import Button from '@material-ui/core/Button';
+import Dialog from '@material-ui/core/Dialog';
+import DialogActions from '@material-ui/core/DialogActions';
+import DialogContent from '@material-ui/core/DialogContent';
+import DialogContentText from '@material-ui/core/DialogContentText';
+import DialogTitle from '@material-ui/core/DialogTitle';
+import Paper from '@material-ui/core/Paper';
+import Draggable from 'react-draggable';
+
+import Switch from '@material-ui/core/Switch';
+import FormGroup from '@material-ui/core/FormGroup';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
 
 
 export default function CalendarMain() {
@@ -16,17 +33,53 @@ export default function CalendarMain() {
   const {userInfo, setUserInfo} = useContext(UserContext)
   const [userEmail, setUserEmail] = useState("")
   const loggedUser = localStorage.getItem('user')
+  const [title, setTitle] = useState("")
+  const [selectInfo, setSelectInfo] = useState({})
+  const [clickInfo, setClickInfo] = useState({})
 
   useEffect(() => {
     getEvents()
   }, [])
 
+
+  const classes = useStyles();
+  const [open, setOpen] = React.useState(false);
+
+  const [openEvent, setOpenEvent] = React.useState(false);
+
+  // handle events for open and close add event modal
+
+  const handleOpen = (eventInfo) => {
+    setOpen(true);
+    setSelectInfo(eventInfo)
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+  };
+
+  // handle events for open and close delete event dialog
+
+  const handleClickOpen = (clickedInfo) => {
+    setOpenEvent(true);
+    setClickInfo(clickedInfo)
+  };
+
+  const handleClickClose = () => {
+    setOpenEvent(false);
+  };
+
   function handleWeekendsToggle() {
     setWeekendsVisible(!weekendsVisible);
   }
 
-  function handleDateSelect(selectInfo) {
-    let title = prompt("Please enter a title for your event");
+
+  function handleInputChange(event){
+    const newEventTitle = event.target.value
+    setTitle(newEventTitle)
+  }
+
+  function handleDateSelect() {
     let calendarApi = selectInfo.view.calendar;
 
     calendarApi.unselect(); // clears date selection
@@ -42,15 +95,8 @@ export default function CalendarMain() {
     }
   }
 
-  function handleEventClick(clickInfo) {
-    if (
-      // eslint-disable-next-line no-restricted-globals
-      confirm(
-        `Are you sure you want to delete the event '${clickInfo.event.title}'`
-      )
-    ) {
-      clickInfo.event.remove();
-    }
+  function handleEventClick() {
+    clickInfo.event.remove()
   }
 
   function handleEvents(events) {
@@ -87,23 +133,81 @@ export default function CalendarMain() {
   }
 
   async function deleteEvent(data){
-    let result = await API.deleteEvent(data.event.id)
+    let result = await API.deleteEvent(data.event.id, loggedUser)
   }
 
   return (
     <div className="App">
       <div className="container">
         <RenderSidebar handleWeekendsToggle={handleWeekendsToggle} weekendsVisible={weekendsVisible} currentEvents={currentEvents}/>
+
+          {/* Modal for adding event */}
+        <Modal
+        aria-labelledby="transition-modal-title"
+        aria-describedby="transition-modal-description"
+        className={classes.modal}
+        open={open}
+        onClose={handleClose}
+        closeAfterTransition
+        BackdropComponent={Backdrop}
+        BackdropProps={{
+          timeout: 500,
+        }}
+      >
+        <Fade in={open}>
+          <div className={classes.paper}>
+            <button className="btn btn-primary-outline float-right" onClick={handleClose} style={{backgroundColor: "transparent"}}><i class="fas fa-times"></i></button>
+            <h2 id="transition-modal-title">Add a title for your event</h2>
+            <div id="transition-modal-description">
+                <div className="mb-3" >
+                  <input onChange={handleInputChange} type="title" className="form-control" id="exampleFormControlInput1" placeholder="Title" />
+                </div>
+                <div className="form-check form-switch">
+                  <input className="form-check-input" type="checkbox" id="flexSwitchCheckChecked" defaultChecked/>
+                  <label className="form-check-label" for="flexSwitchCheckChecked">All Day</label>
+                  <button className="btn btn-primary float-right" type="submit" onClick={() => {handleClose(); handleDateSelect()} }> Add to Calendar</button>
+                </div>
+            </div>
+            
+          </div>
+        </Fade>
+      </Modal>
+
+        {/* Modal for deleting event */}
+        <Dialog
+          open={openEvent}
+          onClose={handleClickClose}
+          PaperComponent={PaperComponent}
+          aria-labelledby="draggable-dialog-title"
+        >
+          <DialogTitle style={{ cursor: 'move' }} id="draggable-dialog-title">
+            Delete Event
+          </DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to delete this event? This action is IRREVERSIBLE.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button autoFocus onClick={handleClickClose} color="primary">
+              Cancel
+            </Button>
+            <Button onClick={() => {handleClickClose(); handleEventClick()}} color="secondary">
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           headerToolbar={{
             left: "prev,next today",
             center: "title",
-            right: "",
+            right: "dayGridMonth,timeGridWeek,timeGridDay",
           }}
           footerToolbar={{
             left: "",
-            center: "dayGridMonth,timeGridWeek,timeGridDay",
+            center: "",
             right: "",
           }}
           initalView="dayGridMonth"
@@ -113,9 +217,9 @@ export default function CalendarMain() {
           dayMaxEvents={true}
           weekends={weekendsVisible}
           events={eventList} //TODO: or use 'events' setting to fetch from a feed
-          select={handleDateSelect}
+          select={handleOpen}
           eventContent={renderEventContent} // custom render function
-          eventClick={handleEventClick}
+          eventClick={handleClickOpen}
           eventsSet={handleEvents}
           eventAdd={(response) => addEvents(response)}
           eventChange={(response) => updateEvent(response)}
@@ -126,7 +230,34 @@ export default function CalendarMain() {
   );
 }
 
+const useStyles = makeStyles((theme) => ({
+  modal: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  paper: {
+    backgroundColor: theme.palette.background.paper,
+    border: '2px solid #000',
+    boxShadow: theme.shadows[5],
+    padding: theme.spacing(2, 4, 3),
+  },
+}));
+
+function PaperComponent(props) {
+  return (
+    <Draggable handle="#draggable-dialog-title" cancel={'[class*="MuiDialogContent-root"]'}>
+      <Paper {...props} />
+    </Draggable>
+  );
+}
+
 function RenderSidebar(props) {
+  const [state, setState] = React.useState({
+    checkedA: true,
+    checkedB: true,
+  });
+
   return (
     <div>
       <div>
@@ -134,12 +265,22 @@ function RenderSidebar(props) {
         <ul>
           <li>Select dates and you will be prompted to create a new event</li>
           <li>Drag, drop, and resize events</li>
+          <li>Click on an event to delete it</li>
         </ul>
       </div>
       <div>
-        <label>
-          <input type="checkbox" checked={props.weekendsVisible} onChange={props.handleWeekendsToggle} /> Toggle Weekends
-        </label>
+        {/* Switch to toggle weekends */}
+        <FormControlLabel
+        control={
+          <Switch
+            checked={props.weekendsVisible}
+            onChange={props.handleWeekendsToggle}
+            name="checkedB"
+            color="primary"
+          />
+        }
+        label="Toggle Weekends"
+      />
       </div>
     </div>
   );
@@ -151,19 +292,5 @@ function renderEventContent(eventInfo) {
       <b>{eventInfo.timeText}</b>
       <i>{eventInfo.event.title}</i>
     </>
-  );
-}
-
-function renderSidebarEvent(event) {
-  return (
-    <li key={event.id}>
-      <b>
-        {formatDate(event.start, {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })}
-      </b>
-    </li>
   );
 }

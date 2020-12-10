@@ -1,10 +1,12 @@
 import React, {useState, useEffect} from 'react'
 import API from '../utils/API'
 import moment from 'moment'
+import axios from 'axios'
 
 export default function AllEvents(props){
     const loggedUser = localStorage.getItem('user')
     const [events, setEvents] = useState([])
+    const [user, setUser] = useState({})
 
     useEffect(() => {
         getEvents()
@@ -18,6 +20,7 @@ export default function AllEvents(props){
         if (currentUserData[0]){
             //console.log('currentUserData=', currentUserData[0])
             //console.log('Prepare to set events', currentUserData[0].events)
+            setUser(currentUserData[0])
             setEvents(currentUserData[0].events)
         } else{
             console.log('No currentUserData')
@@ -38,6 +41,11 @@ export default function AllEvents(props){
       const result = await fetch('http://localhost:3000/api/twilio',{method:'POST', headers:{'Content-Type': 'application/json'},body:JSON.stringify({message: msg, number:'6478638146'})})
     }
 
+    async function sendMail(user, eventData){
+      //console.log(eventData)
+      let result = await API.sendReminder(user, eventData)
+    }
+
     return (
         <section>
             <h2>Upcoming Events ({events.length})</h2>
@@ -46,22 +54,23 @@ export default function AllEvents(props){
                 return(
                   <div className="card text-center rounded-lg">
                     <div className="card-header">
-                      Start: {convertISO(event.start)}
+                      Start: {event.start} 
                     </div>
                     <div className="card-body">
                       <h5 className="card-title">{event.title}</h5>
                       <p className="card-text"></p>
                       <a href="/CalendarMain" className="btn btn-primary">View in Calendar</a>
-                      <a href="#" className="btn btn-primary" onClick={()=>twilioReq(event.title,event.start)}>Set Reminder</a>
+                      <button className="btn btn-primary" onClick={()=>sendMail(user, event)}>Set Reminder</button>
 
                     </div>
                     <div className="card-footer text-muted">
-                      End: {convertISO(event.end)}
+                      End: {event.end} 
                     </div>
                   </div>
                 )
               })
-            : <h4>No Results to Display</h4>
+            : <><h4>You have no events 😔</h4>
+              <h5>Visit the Calendar to add new events!</h5></>
             }
             </ul>
             

@@ -14,7 +14,7 @@ async function createUser(req, res) {
   //if statement to detemine if user already exists
   let dbRes = await db.User.find({email: req.body.email})
   if (!(dbRes == false)) {
-    console.log('dbRes=', dbRes)
+    console.log('Current user found! =>', dbRes)
     return
   } else {
     let result = await db.User.create(req.body);
@@ -45,53 +45,48 @@ async function addEvent(req, res) {
   console.log('addEvent: ', result)
 }
 
-async function updateEvent(req, res) {
-  console.log(
-    `Params: ${JSON.stringify(req.params)}, Body: ${JSON.stringify(
-      req.body
-    )}, new Data: ${JSON.stringify(req.body.events.event)}`
-  );
-  let result = await db.User.find({events:(req.body.event)})
-
+async function updateEvent(req, res) {  
+  console.log(`New data for event with id ${req.params.id}, ${req.body.events.oldEvent.title} = ${JSON.stringify(req.body.events.event)}`)
+  let result = await db.User.findOneAndUpdate({'events.id':req.params.id}, {$set: {'events.$': req.body.events.event}})
   console.log('[updateEvent] function result=', result)
-  // let result = await db.User.findOneAndUpdate(
-  //   { User: {events: { id: req.params.id }} },
-  //   { events: req.body.event }
-  // );
 }
 
 async function removeEvent(req, res) {
-  console.log(`Deleting item id: ${req.params.id} from the database`);
-  let result = await db.User.findByIdAndDelete({
-    events: { id: req.params.id },
-  });
+  console.log(`Deleting item id: ${req.params.id} from the database. req.body=`, req.body);
+
+  let result = await db.User.findOneAndRemove({'event.id': req.params.id}, {$pull: {events: {id: req.params.id}}}, function(err, obj){
+    if (err){
+      console.log('ERROR!!!', err)
+    } else{
+      console.log('SUCCESSFULLY deleted item', obj)
+    }
+  })
   res.send({ message: "Deleted Item" });
 }
 
+
 async function addNote(req, res) {
+  const hacksolution = await db.User.find({});
+  console.log('hack solution: ', JSON.parse(JSON.stringify(hacksolution))[0].notes)
+  const notes = JSON.parse(JSON.stringify(hacksolution))[0].notes
   console.log(
-    "[usersController addnote] function reached: req.body=",
-    req.body
+    "[usersController addNote] function reached: req.body.notes=",
+    req.body.notes
   );
-  //console.log(`[Update Note] Params: ${JSON.stringify(req.params)}, Body: ${JSON.stringify(req.body)}, new Data: ${JSON.stringify(req.body.event)}`)
   let result = await db.User.findOneAndUpdate(
-    { email: req.body.user},
-    { $push: { notes: req.body.notes } },
+    { email: req.body.user },
+    { notes: [...notes,req.body.notes] } ,
     function (error, success) {
       if (error) {
         console.log('ERROR!!!', error);
       } else {
-        console.log('Successfully added note:', success);
+        console.log('Successfully added note');
       }
     }
   );
+  console.log('addNote: ', result)
 }
 
-// async function remove(req, res){
-//     console.log(`Deleting item id: ${req.params.id} from the database`)
-//     let result = await db.User.findByIdAndDelete({events:{id: req.params.id}})
-//     res.send({message: "Deleted Item"})
-// }
 
 module.exports = {
   findAll,

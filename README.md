@@ -1,6 +1,6 @@
 # React Calendar App
 
-* Producky is an application that can improve your productivity. The users will have their own personal profile after logged in. They can schedule or view events, add or delete notes and create kanban todo lists as well as send reminder emails for their events
+* Producky is an application that can improve your productivity. The users will have their own personal profile after logged in. They can schedule or view (week/month/day) events, add or delete notes and create kanban todo lists as well as send reminder emails for their events
 * Deployed at : https://sleepy-retreat-90049.herokuapp.com/Events
 
 ## Tech
